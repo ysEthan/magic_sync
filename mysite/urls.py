@@ -16,7 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
+from mysite.views import *
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-]
+    path('', product_sync_page, name='page'),
+    path('api/products/sync-by-date/', import_products_by_date, name='sync_products_by_date'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
