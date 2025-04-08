@@ -145,13 +145,13 @@ class FeishuNotification:
 # 创建一个全局的通知实例
 feishu = FeishuNotification()
 
-def send_order_sync_notification(sync_type, processed_count, total_count, error_message=None):
-    # 发送订单同步状态通知
-    sync_type_text = "订单" + ("完整同步" if sync_type == 'full' else "增量同步")
-    
-    if error_message:
-        title = f"🔴 {sync_type_text}失败"
-        return feishu.send_message("", title=title)
-    else:
-        title = f"✅ {sync_type_text}完成"
-        return feishu.send_message("", title=title)
+def notify_order_sync_success(success_count, error_count):
+    """发送订单同步成功通知"""
+    title = f"✅ 订单增量同步完成"
+    text = f"成功同步: {success_count} 条\n失败: {error_count} 条"
+    return feishu.send_message(text, title=title)
+
+def notify_order_sync_error(error_message):
+    """发送订单同步失败通知"""
+    title = f"🔴 订单增量同步失败"
+    return feishu.send_message(error_message, title=title)

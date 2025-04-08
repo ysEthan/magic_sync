@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from .product_sync_by_date import sync_products_by_date
 from .order_sync import order_sync
 from .purchase_sync import purchase_sync
+from notification.order_alert import notify_order_sync_success, notify_order_sync_error
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +55,16 @@ def sync_incremental_data():
             end_time=end_time.strftime('%Y-%m-%d %H:%M:%S')
         )
         logger.info(f"增量订单同步完成，成功: {success_count}，失败: {error_count}")
+
+        # 发送同步完成通知
+        notify_order_sync_success(success_count, error_count)
+
     except Exception as e:
-        logger.error(f"增量订单同步失败: {str(e)}")
+        error_message = f"增量订单同步失败: {str(e)}"
+        logger.error(error_message)
         logger.exception("详细错误信息:")
+        # 发送同步失败通知
+        notify_order_sync_error(error_message)
 
 def start():
     """启动定时任务调度器"""
