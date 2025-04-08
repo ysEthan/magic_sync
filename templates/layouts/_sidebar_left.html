@@ -1,0 +1,75 @@
+<aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
+    <div class="container-fluid">
+        <h1 class="navbar-brand mb-4">
+            <a href="/" class="text-decoration-none text-white">Magic Sync</a>
+        </h1>
+        
+        <div class="navbar-collapse">
+            <div class="navbar-nav flex-column nav-pills w-100">
+                <div class="nav-header text-uppercase text-muted fs-sm fw-semibold px-3 py-2">
+                    导航菜单
+                </div>
+                
+                <div class="nav-item">
+                    <a href="/" class="nav-link d-flex align-items-center px-3 py-2">
+                        <span class="nav-link-icon me-3">
+                            <i class="fas fa-box"></i>
+                        </span>
+                        <span class="flex-fill">商品同步</span>
+                    </a>
+                </div>
+                
+                <div class="nav-item">
+                    <a href="/orders" class="nav-link d-flex align-items-center px-3 py-2">
+                        <span class="nav-link-icon me-3">
+                            <i class="fas fa-shopping-cart"></i>
+                        </span>
+                        <span class="flex-fill">订单同步</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        .navbar-vertical {
+            width: 260px;
+            min-height: 100vh;
+            background: #2c3338;
+            border-right: 1px solid rgba(255,255,255,0.1);
+            padding: 1rem;
+        }
+        .navbar-brand {
+            font-size: 1.25rem;
+            padding: 1rem 0.5rem;
+            margin: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .nav-header {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.75rem;
+            margin-top: 1rem;
+        }
+        .nav-link {
+            color: rgba(255,255,255,0.8) !important;
+            border-radius: 4px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .nav-link:hover {
+            color: #fff !important;
+            background: rgba(255,255,255,0.1);
+        }
+        .nav-link.active {
+            background: #00b8d4 !important;
+            color: #fff !important;
+        }
+        .nav-link-icon {
+            width: 1.5rem;
+            text-align: center;
+            font-size: 1rem;
+        }
+        .fs-sm {
+            font-size: 0.875rem;
+        }
+    </style>
+</aside>

@@ -1,0 +1,261 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}商品同步管理{% endblock %}
+
+{% block extra_css %}
+<style>
+    .sync-button {
+        margin: 10px;
+        min-width: 200px;
+    }
+    .status-message {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 5px;
+        display: none;
+    }
+    .success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    .error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    .loading {
+        display: none;
+        margin-top: 20px;
+    }
+    .card {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 1.5rem;
+    }
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #eee;
+        padding: 1rem 1.25rem;
+    }
+    .card-body {
+        padding: 1.5rem;
+    }
+    .container {
+        max-width: 1200px;
+        padding: 2rem 1rem;
+    }
+    .btn {
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .form-group {
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">商品同步管理</h2>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">商品同步</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label for="startDate">开始时间</label>
+                    <input type="text" class="form-control" id="startDate" placeholder="选择开始时间">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label for="endDate">结束时间</label>
+                    <input type="text" class="form-control" id="endDate" placeholder="选择结束时间">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button id="syncLastDay" class="btn btn-primary w-100">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        <i class="fas fa-sync"></i> 同步商品数据
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="d-flex justify-content-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">同步中...</span>
+                </div>
+            </div>
+            <p class="text-center mt-2">正在同步数据，请稍候...</p>
+        </div>
+
+        <div id="statusMessage" class="mt-3"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM 加载完成');
+        
+        // 检查 Flatpickr 是否正确加载
+        if (typeof flatpickr === 'undefined') {
+            console.error('Flatpickr 未正确加载');
+            return;
+        }
+        console.log('Flatpickr 已加载');
+
+        // 检查输入框是否存在
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        
+        if (!startDateInput || !endDateInput) {
+            console.error('日期输入框未找到');
+            return;
+        }
+        console.log('找到日期输入框');
+
+        // 设置 Flatpickr 的中文语言
+        flatpickr.localize(flatpickr.l10ns.zh);
+
+        // 初始化日期时间选择的通用配置
+        const dateConfig = {
+            enableTime: false,
+            dateFormat: "Y-m-d",
+            locale: "zh",
+            maxDate: "today"
+        };
+
+        // 初始化开始日期选择器
+        const startDatePicker = flatpickr("#startDate", {
+            ...dateConfig,
+            defaultDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 默认3天前
+            onChange: function(selectedDates, dateStr) {
+                if (selectedDates[0]) {
+                    endDatePicker.set('minDate', dateStr);
+                }
+            }
+        });
+
+        // 初始化结束日期选择器
+        const endDatePicker = flatpickr("#endDate", {
+            ...dateConfig,
+            defaultDate: new Date(),
+            onChange: function(selectedDates, dateStr) {
+                if (selectedDates[0]) {
+                    startDatePicker.set('maxDate', dateStr);
+                }
+            }
+        });
+
+        // 添加按钮点击事件监听
+        document.getElementById('syncLastDay').addEventListener('click', function() {
+            console.log('点击同步按钮');
+            syncProducts();
+        });
+    });
+
+    function showLoading(loadingId) {
+        document.getElementById(loadingId).style.display = 'block';
+    }
+
+    function hideLoading(loadingId) {
+        document.getElementById(loadingId).style.display = 'none';
+    }
+
+    function showMessage(messageId, message, isError = false) {
+        console.log('显示消息:', { messageId, message, isError });
+        const messageDiv = document.getElementById(messageId);
+        messageDiv.style.display = 'block';
+        const alertClass = isError ? 'danger' : 'success';
+        messageDiv.innerHTML = `<div class="alert alert-${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>`;
+    }
+
+    async function syncProducts() {
+        console.log('开始同步商品');
+        try {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            // 验证日期
+            if (!startDate || !endDate) {
+                showMessage('statusMessage', '请选择开始和结束时间', true);
+                return;
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                showMessage('statusMessage', '开始时间不能大于结束时间', true);
+                return;
+            }
+
+            showLoading('loading');
+            console.log('发送请求前...');
+            const response = await fetch('/api/products/sync-by-date/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    start_time: startDate + ' 00:00:00',
+                    end_time: endDate + ' 23:59:59'
+                })
+            });
+            
+            console.log('收到响应:', response.status);
+            
+            const result = await response.json();
+            console.log('解析后的响应数据:', result);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            if (result.status === 'error') {
+                console.log('服务器返回错误:', result.message);
+                showMessage('statusMessage', result.message, true);
+            } else {
+                console.log('同步成功:', result.message);
+                showMessage('statusMessage', result.message, false);
+            }
+        } catch (error) {
+            console.error('捕获到错误:', error);
+            showMessage('statusMessage', '同步过程中发生错误：' + error.message, true);
+        } finally {
+            console.log('同步操作完成');
+            hideLoading('loading');
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

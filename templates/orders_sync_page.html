@@ -1,0 +1,437 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}采购单导入{% endblock %}
+
+{% block extra_css %}
+<style>
+.table {
+    margin-bottom: 0;
+}
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+.table td {
+    vertical-align: middle;
+    padding: 0.75rem;
+}
+.table-sm td, .table-sm th {
+    padding: 0.5rem;
+}
+.table-bordered th, .table-bordered td {
+    border: 1px solid #dee2e6;
+}
+.table-responsive {
+    margin-top: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+#successOrdersList, #failedOrdersList {
+    background-color: #fff;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-top: 1.5rem;
+}
+#successOrdersList h6, #failedOrdersList h6 {
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+#successOrdersList .table {
+    border: 1px solid #c3e6cb;
+}
+#failedOrdersList .table {
+    border: 1px solid #f5c6cb;
+}
+#successOrdersList th {
+    background-color: #d4edda;
+    color: #155724;
+}
+#failedOrdersList th {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+.sync-status {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.875rem;
+}
+.sync-status.success {
+    background-color: #d4edda;
+    color: #155724;
+}
+.sync-status.error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">采购单导入</h2>
+
+<!-- 创建采购单 -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">采购单导入</h5>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label for="startDate">开始时间</label>
+                    <input type="text" class="form-control" id="startDate" placeholder="选择开始时间">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label for="endDate">结束时间</label>
+                    <input type="text" class="form-control" id="endDate" placeholder="选择结束时间">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-success w-100" onclick="createOrders()">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        从Excel导入采购单
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <small class="form-text text-muted">
+                    从 file/hitems_order.xlsx 文件导入采购单数据
+                </small>
+            </div>
+        </div>
+        <div id="createOrderMessage" class="mt-3"></div>
+        
+        <!-- 成功订单列表 -->
+        <div id="successOrdersList" class="mt-3" style="display: none;">
+            <h6 class="text-success">成功导入的采购单：</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                    <thead>
+                        <tr>
+                            <th>采购单号</th>
+                            <th>供应商</th>
+                            <th>SKU</th>
+                            <th>数量</th>
+                            <th>单价</th>
+                        </tr>
+                    </thead>
+                    <tbody id="successOrdersBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 失败订单列表 -->
+        <div id="failedOrdersList" class="mt-3" style="display: none;">
+            <h6 class="text-danger">导入失败的采购单：</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                    <thead>
+                        <tr>
+                            <th>采购单号</th>
+                            <th>供应商</th>
+                            <th>SKU</th>
+                            <th>失败原因</th>
+                        </tr>
+                    </thead>
+                    <tbody id="failedOrdersBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 订单同步 -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">订单同步</h5>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label for="syncStartDate">开始时间</label>
+                    <input type="text" class="form-control" id="syncStartDate" placeholder="选择开始时间">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label for="syncEndDate">结束时间</label>
+                    <input type="text" class="form-control" id="syncEndDate" placeholder="选择结束时间">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-primary w-100" onclick="syncOrders()">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        同步订单
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="syncOrderMessage" class="mt-3"></div>
+        
+        <!-- 同步结果列表 -->
+        <div id="syncResultList" class="mt-3" style="display: none;">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                    <thead>
+                        <tr>
+                            <th>订单号</th>
+                            <th>同步时间</th>
+                            <th>状态</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody id="syncResultBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 初始化日期时间选择的通用配置
+    const dateConfig = {
+        enableTime: false,
+        dateFormat: "Y-m-d",
+        locale: "zh",
+        maxDate: "today"
+    };
+
+    // 初始化采购单导入日期选择器
+    const startDatePicker = flatpickr("#startDate", {
+        ...dateConfig,
+        defaultDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        onChange: function(selectedDates, dateStr) {
+            endDatePicker.set('minDate', dateStr);
+        }
+    });
+
+    const endDatePicker = flatpickr("#endDate", {
+        ...dateConfig,
+        defaultDate: "today",
+        onChange: function(selectedDates, dateStr) {
+            startDatePicker.set('maxDate', dateStr);
+        }
+    });
+
+    // 初始化订单同步日期选择器
+    const syncStartDatePicker = flatpickr("#syncStartDate", {
+        ...dateConfig,
+        defaultDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        onChange: function(selectedDates, dateStr) {
+            syncEndDatePicker.set('minDate', dateStr);
+        }
+    });
+
+    const syncEndDatePicker = flatpickr("#syncEndDate", {
+        ...dateConfig,
+        defaultDate: "today",
+        onChange: function(selectedDates, dateStr) {
+            syncStartDatePicker.set('maxDate', dateStr);
+        }
+    });
+
+    // 创建采购单函数
+    async function createOrders() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const button = event.target;
+        const spinner = button.querySelector('.spinner-border');
+        const messageDiv = document.getElementById('createOrderMessage');
+        const successOrdersList = document.getElementById('successOrdersList');
+        const failedOrdersList = document.getElementById('failedOrdersList');
+        const successOrdersBody = document.getElementById('successOrdersBody');
+        const failedOrdersBody = document.getElementById('failedOrdersBody');
+
+        // 验证时间
+        if (!startDate || !endDate) {
+            messageDiv.innerHTML = '<div class="alert alert-danger">请选择开始和结束时间</div>';
+            return;
+        }
+
+        if (new Date(startDate) > new Date(endDate)) {
+            messageDiv.innerHTML = '<div class="alert alert-danger">开始时间不能大于结束时间</div>';
+            return;
+        }
+
+        // 重置列表
+        successOrdersBody.innerHTML = '';
+        failedOrdersBody.innerHTML = '';
+        successOrdersList.style.display = 'none';
+        failedOrdersList.style.display = 'none';
+
+        // 显示加载状态
+        button.disabled = true;
+        spinner.classList.remove('d-none');
+        messageDiv.innerHTML = '<div class="alert alert-info">正在导入采购单...</div>';
+
+        try {
+            console.log('发送请求参数:', { startDate, endDate });
+            const response = await fetch('/api/purchase/import/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    start_date: startDate,
+                    end_date: endDate
+                })
+            });
+
+            const data = await response.json();
+            console.log('API返回结果:', data);
+
+            if (response.ok) {
+                messageDiv.innerHTML = `<div class="alert alert-${data.status === 'success' ? 'success' : 'danger'}">${data.message}</div>`;
+
+                // 显示成功订单
+                if (data.success_orders && data.success_orders.length > 0) {
+                    data.success_orders.forEach(order => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${order.orderNo}</td>
+                            <td>${order.supplier}</td>
+                            <td>${order.specNo}</td>
+                            <td>${order.qty}</td>
+                            <td>${order.price}</td>
+                        `;
+                        successOrdersBody.appendChild(row);
+                    });
+                    successOrdersList.style.display = 'block';
+                }
+
+                // 显示失败订单
+                if (data.failed_orders && data.failed_orders.length > 0) {
+                    data.failed_orders.forEach(order => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${order.orderNo}</td>
+                            <td>${order.supplier}</td>
+                            <td>${order.specNo}</td>
+                            <td>${order.error}</td>
+                        `;
+                        failedOrdersBody.appendChild(row);
+                    });
+                    failedOrdersList.style.display = 'block';
+                }
+            } else {
+                throw new Error(data.message || '导入失败');
+            }
+        } catch (error) {
+            messageDiv.innerHTML = `<div class="alert alert-danger">导入采购单失败：${error.message}</div>`;
+        } finally {
+            button.disabled = false;
+            spinner.classList.add('d-none');
+        }
+    }
+
+    // 同步订单函数
+    async function syncOrders() {
+        const startDate = document.getElementById('syncStartDate').value;
+        const endDate = document.getElementById('syncEndDate').value;
+        const button = event.target;
+        const spinner = button.querySelector('.spinner-border');
+        const messageDiv = document.getElementById('syncOrderMessage');
+        const resultList = document.getElementById('syncResultList');
+        const resultBody = document.getElementById('syncResultBody');
+
+        // 验证时间
+        if (!startDate || !endDate) {
+            messageDiv.innerHTML = '<div class="alert alert-danger">请选择开始和结束时间</div>';
+            return;
+        }
+
+        if (new Date(startDate) > new Date(endDate)) {
+            messageDiv.innerHTML = '<div class="alert alert-danger">开始时间不能大于结束时间</div>';
+            return;
+        }
+
+        // 重置列表
+        resultBody.innerHTML = '';
+        resultList.style.display = 'none';
+
+        // 显示加载状态
+        button.disabled = true;
+        spinner.classList.remove('d-none');
+        messageDiv.innerHTML = '<div class="alert alert-info">正在同步订单...</div>';
+
+        try {
+            console.log('发送同步请求参数:', { startDate, endDate });
+            const response = await fetch('/api/orders/sync/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    start_date: startDate,
+                    end_date: endDate
+                })
+            });
+
+            const data = await response.json();
+            console.log('同步API返回结果:', data);
+
+            if (response.ok) {
+                messageDiv.innerHTML = `<div class="alert alert-${data.status === 'success' ? 'success' : 'danger'}">${data.message}</div>`;
+
+                // 显示同步结果
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach(result => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${result.order_no}</td>
+                            <td>${result.sync_time}</td>
+                            <td><span class="sync-status ${result.status === 'success' ? 'success' : 'error'}">${result.status === 'success' ? '成功' : '失败'}</span></td>
+                            <td>${result.message || '-'}</td>
+                        `;
+                        resultBody.appendChild(row);
+                    });
+                    resultList.style.display = 'block';
+                }
+            } else {
+                throw new Error(data.message || '同步失败');
+            }
+        } catch (error) {
+            messageDiv.innerHTML = `<div class="alert alert-danger">同步订单失败：${error.message}</div>`;
+        } finally {
+            button.disabled = false;
+            spinner.classList.add('d-none');
+        }
+    }
+
+    // 获取CSRF Token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // 设置中文语言
+    document.addEventListener('DOMContentLoaded', function() {
+        flatpickr.localize(flatpickr.l10ns.zh);
+    });
+</script>
+{% endblock %}
