@@ -26,7 +26,7 @@ COPY . .
 ENV DJANGO_SETTINGS_MODULE=mysite.settings
 
 # 暴露容器内的端口
-EXPOSE 8002
+EXPOSE 8003
 
 # 运行 Django 命令来启动服务器
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8002"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8003"]
