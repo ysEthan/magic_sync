@@ -77,7 +77,7 @@ def start():
     # 添加每天凌晨2点的数据同步任务
     scheduler.add_job(
         sync_daily_data,
-        trigger=CronTrigger(hour=2, minute=0),
+        trigger=CronTrigger(hour=21, minute=10),
         id='daily_sync',
         name='每天凌晨2点同步数据',
         replace_existing=True
